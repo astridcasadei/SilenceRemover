@@ -1,2 +1,5 @@
 __pycache__
 SilenceRemover.pyproject.user
+build
+dist
+TodoList.txt
