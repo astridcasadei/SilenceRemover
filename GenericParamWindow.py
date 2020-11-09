@@ -28,81 +28,111 @@ class GenericParamWindow(QtWidgets.QWidget):
 
     nextWindow = Signal(str, str, float, int, int, int)
 
+    # Called once, when window is created
     def __init__(self):
         super(GenericParamWindow, self).__init__()
-        self.load_ui()
+
+        # Create objects
         self.error_dialog = QMessageBox()
-        self.ui.input_file_line_edit.setText("C:\\Users\\Astrid\\Videos\\essai.mp4")
-        self.ui.output_file_line_edit.setText("C:\\Users\\Astrid\\Videos\\essai_transfo.mp4")
         self.sound_profile = SoundProfileWidget()
 
-    def load_ui(self):
+        # Load UI
         loader = QUiLoader()
         path = os.path.join(os.path.dirname(__file__), "GenericParamForm.ui")
         ui_file = QFile(path)
         ui_file.open(QFile.ReadOnly)
         self.ui = loader.load(ui_file, self)
+        ui_file.close()
+        self.ui.input_file_line_edit.setText("")
+        self.ui.output_file_line_edit.setText("")
+
+        # Connect buttons
         self.ui.next_button.clicked.connect(self.on_next_button_clicked)
         self.ui.browse_input_file_button.clicked.connect(self.on_browse_input_file_button_clicked)
         self.ui.browse_output_file_button.clicked.connect(self.on_browse_output_file_button_clicked)
         self.ui.sound_profile_push_button.clicked.connect(self.on_sound_profile_button_clicked)
-        ui_file.close()
 
+    # Called each time the window is showed
     def start(self):
+        # Hide progress bar
         self.ui.progress_bar.hide()
 
+    # Called when user press 'Sound profile' button
     def on_sound_profile_button_clicked(self):
+        # Get input file entered by user
         self.input_filename = self.ui.input_file_line_edit.text()
 
+        # Check whether input file entered by user is a valid video file
         error_msg = ""
+        file, input_extension = os.path.splitext(self.input_filename)
+
         if (self.input_filename == ""):
             error_msg = "Input video file should be specified."
         elif (not os.path.isfile(self.input_filename)):
             error_msg = "Input video file does not exist."
+        elif (not (input_extension in self.input_filename_extension)):
+            ext = ""
+            for e in self.input_filename_extension:
+                ext = ext + " " + e
+            error_msg = "Supported input video formats are:" + ext + "."
 
+        # If input file is valid
         if (error_msg == ""):
             self.on_progress(0)
+
+            # Create a video clip from input file
             videoclip = VideoFileClip(self.input_filename)
+
             self.on_progress(9)
+
+            # Extract audio from video clip (if video is long, keep only first seconds)
             audio_fps = videoclip.audio.fps
             duration = min(videoclip.duration, self.max_sound_profile_duration)
             sound_array = videoclip.audio.subclip(0, duration).to_soundarray(fps=audio_fps)
-            self.on_progress(13)
-            n = np.shape(sound_array)[0]  # On a n / customFps = duree en secondes
 
+            self.on_progress(13)
+
+            # Compute volume
+            n = np.shape(sound_array)[0]  # We have n / customFps = duration in seconds
             volumeFn = lambda p : math.sqrt(p[0]**2 + p[1]**2)
             volumes = np.zeros(n)
             times = np.arange(0, duration, 1/audio_fps)
             for i in range(n):
                 volumes[i] = volumeFn(sound_array[i])
+
             self.on_progress(63)
+
+            # Make a plot of the volume
             title = 'Sound profile of ' + self.input_filename
             if (videoclip.duration != duration):
                 title += "\n(truncated to first " + str(duration) + " seconds)"
 
             self.sound_profile.update_plot(title, times, volumes)
+
             self.on_progress(100)
+
+            # Show plot and hide progress bar
             self.sound_profile.showMaximized()
             self.ui.progress_bar.hide()
+
+        # If input file entered by user is invalid, show an error message.
         else:
             self.error_dialog.setIcon(QMessageBox.Warning)
             self.error_dialog.setText(error_msg)
             self.error_dialog.show()
 
-    def on_progress(self, percent):
-        self.ui.progress_bar.show()
-        self.ui.progress_bar.setValue(percent)
-
+    # Called when user press the '...' button to select input file
     def on_browse_input_file_button_clicked(self):
         ext = ""
         for e in self.input_filename_extension:
             ext = ext + " *" + e
         ext = "Video Files (" + ext + ")"
-        file = QFileDialog.getOpenFileName(self, "Choose input video", "C:\\", ext)
+        file = QFileDialog.getOpenFileName(self, "Choose input video", "", ext)
         input_filename = file[0]
         self.ui.input_file_line_edit.selectAll()
         self.ui.input_file_line_edit.insert(input_filename)
 
+    # Called when user press the '...' button to select output file
     def on_browse_output_file_button_clicked(self):
         ext = ""
         for e in self.output_filename_extension:
@@ -113,6 +143,7 @@ class GenericParamWindow(QtWidgets.QWidget):
         self.ui.output_file_line_edit.selectAll()
         self.ui.output_file_line_edit.insert(output_filename)
 
+    # Called when user press 'Next' button
     def on_next_button_clicked(self):
         # Get data entered by user
         self.input_filename = self.ui.input_file_line_edit.text()
@@ -167,7 +198,13 @@ class GenericParamWindow(QtWidgets.QWidget):
             self.error_dialog.setText(error_msg)
             self.error_dialog.show()
 
+    # Called automatically when a computational routine has progressed
+    # (there are two routines using this progress bar: on_sound_profile_button_clicked and on_next_button_clicked)
+    def on_progress(self, percent):
+        self.ui.progress_bar.show()
+        self.ui.progress_bar.setValue(percent)
 
+# Class for plotting sound profile
 class SoundProfileWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)

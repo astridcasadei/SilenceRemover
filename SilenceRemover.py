@@ -55,4 +55,5 @@ if __name__ == "__main__":
     frame1.start()
     frame1.show()
 
+    # Qt loop
     sys.exit(app.exec_())

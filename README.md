@@ -14,6 +14,7 @@ Basically, you can choose:
   Each silence cut can be previewed to help you adjusting these parameters.
 
 Supported input video format are: .mp4, .avi, .flv, .mkv, .vob, .webm, .wmv, .mov, .mpg
+
 Supported output video format are: .mp4, .webm
 
 Author: 

@@ -24,29 +24,34 @@ class SpecificParamWindow(QtWidgets.QWidget):
 
     previousWindow = Signal()
 
+    # Called once, when window is created
     def __init__(self):
         super(SpecificParamWindow, self).__init__()
-        self.load_ui()
-        self.error_dialog = QMessageBox()
 
-    def load_ui(self):
+        # Creation of objects
+        self.error_dialog = QMessageBox()
         self.progress_bar_logger = MyBarLogger()
+
+        # Load UI
         loader = QUiLoader()
         path = os.path.join(os.path.dirname(__file__), "SpecificParamForm.ui")
         ui_file = QFile(path)
         ui_file.open(QFile.ReadOnly)
         self.ui = loader.load(ui_file, self)
+        ui_file.close()
+
+        # Set silence table widget properties
         self.ui.silence_list_table_widget.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.ui.silence_list_table_widget.setSelectionMode(QAbstractItemView.SingleSelection)
-        ui_file.close()
+
         header = self.ui.silence_list_table_widget.horizontalHeader()
-        #
         header.setSectionResizeMode(COL_START_SILENCE, QtWidgets.QHeaderView.ResizeToContents)
         header.setSectionResizeMode(COL_STOP_SILENCE, QtWidgets.QHeaderView.ResizeToContents)
         header.setSectionResizeMode(COL_DURATION, QtWidgets.QHeaderView.ResizeToContents)
         header.setSectionResizeMode(COL_START_OFFSET, QtWidgets.QHeaderView.Stretch)
         header.setSectionResizeMode(COL_STOP_OFFSET, QtWidgets.QHeaderView.Stretch)
 
+        # Connect buttons and progress bar
         self.ui.silence_preview_push_button.clicked.connect(self.on_silence_preview_push_button_clicked)
         self.ui.generate_push_button.clicked.connect(self.on_generate_push_button_clicked)
         self.ui.previous_push_button.clicked.connect(self.on_previous_push_button_clicked)
@@ -54,10 +59,14 @@ class SpecificParamWindow(QtWidgets.QWidget):
         self.video_tools.video_generation_progress.connect(self.on_video_generation_progress)
         self.progress_bar_logger.video_generation_progress.connect(self.on_video_generation_progress)
 
+    # Called each time the window is showed
     def start(self, input_filename, output_filename, noise_threshold,
               max_silence_duration, start_offset, stop_offset):
+
+        # Hide progress bar
         self.ui.progress_bar.hide()
 
+        # Save data entered by user
         self.input_filename = input_filename
         self.output_filename = output_filename
         self.noise_threshold = noise_threshold
@@ -65,27 +74,21 @@ class SpecificParamWindow(QtWidgets.QWidget):
         self.start_offset = start_offset
         self.stop_offset = stop_offset
 
+        # Find silences in the input video, with parameters entered by user
         self.silence_list = self.video_tools.compute_silences(self.input_filename,
                                                               self.noise_threshold,
                                                               self.max_silence_duration,
                                                               self.start_offset,
                                                               self.stop_offset)
+        # Fill silence table widget with silences found.
         self.fill_silence_table()
         if (len(self.silence_list) > 0):
             self.ui.silence_list_table_widget.selectRow(0)
         else:
             self.ui.silence_preview_push_button.setEnabled(False)
 
+        # Connect button for previewing silences
         self.ui.silence_list_table_widget.cellChanged.connect(self.on_cell_changed)
-
-    def on_previous_push_button_clicked(self):
-        self.ui.silence_list_table_widget.cellChanged.disconnect(self.on_cell_changed)
-
-        old_len = self.ui.silence_list_table_widget.rowCount()
-        for i in range(old_len):
-            self.ui.silence_list_table_widget.removeRow(0)
-
-        self.previousWindow.emit()
 
     def fill_silence_table(self):
         n_silence = len(self.silence_list)
@@ -95,7 +98,7 @@ class SpecificParamWindow(QtWidgets.QWidget):
             self.ui.silence_list_table_widget.insertRow(i)
             e = self.silence_list[i]
 
-            # Fill line with data
+            # Fill line with silence data
             item = QtWidgets.QTableWidgetItem("{:.3f}".format(e.start_time))
             self.ui.silence_list_table_widget.setItem(i, COL_START_SILENCE, item)
             item = QtWidgets.QTableWidgetItem("{:.3f}".format(e.stop_time))
@@ -103,6 +106,7 @@ class SpecificParamWindow(QtWidgets.QWidget):
             item = QtWidgets.QTableWidgetItem("{:.3f}".format(e.duration()))
             self.ui.silence_list_table_widget.setItem(i, COL_DURATION, item)
 
+            # Columns containing start and stop offsets are editable spinboxes
             item = QtWidgets.QTableWidgetItem()
             item.setData(QtCore.Qt.EditRole, e.start_offset)
             self.ui.silence_list_table_widget.setItem(i, COL_START_OFFSET, item)
@@ -129,30 +133,34 @@ class SpecificParamWindow(QtWidgets.QWidget):
             self.ui.silence_list_table_widget.item(row, col).setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
             self.ui.silence_list_table_widget.item(row, col).setBackground(Qt.lightGray)
 
+    # Called when user press 'Previous' button
+    def on_previous_push_button_clicked(self):
+        # Empty silence table widget.
+        old_len = self.ui.silence_list_table_widget.rowCount()
+        for i in range(old_len):
+            self.ui.silence_list_table_widget.removeRow(0)
+
+        # Disconnect button for previewing silences
+        self.ui.silence_list_table_widget.cellChanged.disconnect(self.on_cell_changed)
+
+        # Ask to get back to first window (GenericParamWindow)
+        self.previousWindow.emit()
+
+    # Called when user press 'Generate' button
     def on_generate_push_button_clicked(self):
         self.ui.progress_bar.show()
         self.video_tools.write_video(self.input_filename, self.output_filename, self.silence_list, self.progress_bar_logger)
         self.close()
 
+    # Called automatically when generation routine has progressed
+    def on_video_generation_progress(self, percent):
+        self.ui.progress_bar.setValue(percent)
+
+    # Called when user press 'Cancel' button
     def on_quit_push_button_clicked(self):
         self.close()
 
-    def on_cell_changed(self, row, col):
-        assert ((row >= 0) and (row < len(self.silence_list))), 'Fatal error'
-        assert ((col == COL_START_OFFSET) or (col == COL_STOP_OFFSET)), 'Fatal error'
-
-        data = self.ui.silence_list_table_widget.item(row, col).data(Qt.DisplayRole)
-
-        if (col == COL_START_OFFSET):
-            self.silence_list[row].start_offset = data
-        else:
-            self.silence_list[row].stop_offset = data
-
-        if ((self.silence_list[row].start_offset + self.silence_list[row].stop_offset) * MS_TO_SEC > self.silence_list[row].duration()):
-            self.error_dialog.setIcon(QMessageBox.Warning)
-            self.error_dialog.setText("You have set start_offset + stop_offset greater than silence duration. Therefore, this silence will not be cut.")
-            self.error_dialog.show()
-
+    # Called when user press 'Preview silence' button
     def on_silence_preview_push_button_clicked(self):
         indexes = self.ui.silence_list_table_widget.selectionModel().selectedRows()
         assert (len(indexes) == 1)
@@ -164,10 +172,27 @@ class SpecificParamWindow(QtWidgets.QWidget):
 
         self.video_tools.preview_video(self.input_filename, playtime_before, playtime_after, silence)
 
-    def on_video_generation_progress(self, percent):
-        self.ui.progress_bar.setValue(percent)
+    # Called when user change a cell in silence table widget
+    def on_cell_changed(self, row, col):
+        assert ((row >= 0) and (row < len(self.silence_list))), 'Fatal error'
+        assert ((col == COL_START_OFFSET) or (col == COL_STOP_OFFSET)), 'Fatal error'
+
+        # Get changed data
+        data = self.ui.silence_list_table_widget.item(row, col).data(Qt.DisplayRole)
+
+        if (col == COL_START_OFFSET):
+            self.silence_list[row].start_offset = data
+        else:
+            self.silence_list[row].stop_offset = data
+
+        # If invalid data entered by user, open a warning box.
+        if ((self.silence_list[row].start_offset + self.silence_list[row].stop_offset) * MS_TO_SEC > self.silence_list[row].duration()):
+            self.error_dialog.setIcon(QMessageBox.Warning)
+            self.error_dialog.setText("You have set start_offset + stop_offset greater than silence duration. Therefore, this silence will not be cut.")
+            self.error_dialog.show()
 
 
+# Allow to set limits for spinboxes for start and stop offsets of silences in the silence table widget.
 class SpinBoxDelegate(QItemDelegate):
 
     def createEditor(self, parent, option, index):
@@ -178,6 +203,7 @@ class SpinBoxDelegate(QItemDelegate):
 
         return editor
 
+# Progress bar of video generation
 class MyBarLogger(ProgressBarLogger, QObject):
     mp3_progress_start = 12
     mp3_progress_stop = 16

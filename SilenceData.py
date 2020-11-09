@@ -5,16 +5,22 @@ MS_TO_SEC = 0.001
 
 class SilenceData:
     id = 0
+
     # Silence start time [float, s]
     start_time = 0
+
     # Silence stop time [float, s]
     stop_time = 0
+
     # Silence start offset [int, ms]
     start_offset = 0
+
     # Silence stop offset [int, ms]
     stop_offset = 0
+
     # Start offset changeable [bool]
     start_offset_changeable = True
+
     # Stop offset changeable [bool]
     stop_offset_changeable = True
 
