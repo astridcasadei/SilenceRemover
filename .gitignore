@@ -1,5 +1,8 @@
 __pycache__
-SilenceRemover.pyproject.user
+src/__pycache__
+src/SilenceRemover.pyproject.user
+src/dist
+src/build
 build
 dist
 TodoList.txt
