@@ -1,0 +1,8 @@
+Pyside2 => LGPL
+Moviepy => MIT
+Matplotlib => PSF
+Numpy => BSD
+Pygame => GNU LGPL
+Proglog => MIT
+ffmpeg => No matter (not included)
+?? TODO Which license for SilenceRemover ??
