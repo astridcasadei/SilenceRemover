@@ -25,7 +25,7 @@ Astrid Casadei
 License: 
 ========
 
-TODO
+See LICENSE file.
 
 Installation:
 =============
@@ -40,21 +40,55 @@ Installation:
 Installation from sources:
 ==========================
 
-* Install python 3.9 (this should also install pip)
+Note: version number of dependancies are given as a guide. The software may work with other versions.
+
+Windows
+-------
+
+* Install python 3.8 or 3.9 (this should also install pip)
 * Install ffmpeg (this step is optional)
-* Open a terminal (on Window this can be done by launching 'cmd' or 'powershell'). 
+* Open a terminal (on Windows this can be done by launching 'cmd' or 'powershell'). 
 * Enter the following line:
-  pip install PySide2==5.15.1 numpy==1.19.3 matplotlib==3.2.2 moviepy==1.0.3 proglog==0.1.9 pygame==2.0.0
-* Download sources of SilenceRemover from github (https://github.com/astridcasadei/SilenceRemover/src)
-* In the terminal, go in the folder where you downloaded the sources.
+  python -m pip install PySide2==5.15.1 numpy==1.19.3 matplotlib==3.2.2 moviepy==1.0.3 proglog==0.1.9 pygame==2.0.0
+* Download sources of SilenceRemover from github: 
+  go to https://github.com/astridcasadei/SilenceRemover/tree/v1.0.0 and click 'Code' and 'Download zip'.
+* Unzip the file you dowloaded in a folder of your choice.
+* In the terminal, go to the folder where you unziped the file, and go to the subfolder "src". For instance:
+  cd "C:\Users\YourName\Downloads\SilenceRemover-1.0.0\src"
 * Enter the following line:
   python SilenceRemover.py
   (This should launch the software.)
 
+Ubuntu
+-------
+
+* Open a terminal.
+* Install python 3.8 or 3.9 and pip:
+  sudo apt-get install python3.8 python3-distutils pkg-config freetype* python3-pip
+  (Some packages above may not be necessary but I got trouble and I'm not sure...)
+* Check 'python3 --version' return python 3.8 or 3.9 
+* Install ffmpeg (this is optional):
+  sudo apt-get install ffmpeg
+* Install the following python modules:
+  python3 -m pip install PySide2==5.15.1 numpy==1.19.3 matplotlib==3.2.2 moviepy==1.0.3 proglog==0.1.9 pygame==2.0.0
+* Download sources of SilenceRemover from github: 
+  go to https://github.com/astridcasadei/SilenceRemover/tree/v1.0.0 and click 'Code' and 'Download zip'.
+* In the terminal, go to the folder where you downloaded the file:
+  cd path/to/file
+* Unzip it:
+  unzip SilenceRemover-1.0.0.zip
+* Go to src subfolder:
+  cd src
+* Enter the following line:
+  python3 SilenceRemover.py
+  (This should launch the software.)
+  
+  
+
 Usage example
 ==============
 
-* Download some test video, for example https://github.com/astridcasadei/SilenceRemover/test/alphabet1.mp4.
+* Download some test video, for example https://github.com/astridcasadei/SilenceRemover/blob/v1.0.0/test/alphabet1.mp4.
 * Play video alphabet1.mp4: you can see it is a (french) spelling of the alphabet with silences between some letters.
 * Launch SilenceRemover (see 'Installation' or 'Installation from sources' paragraphs).
 * Browse input video file and select alphabet1.mp4.
@@ -72,3 +106,8 @@ Usage example
 * Click again on 'Silence preview': this time, a more significant part of the silence has been kept.
 * Click on the 'Generate' button.
 * Play alphabet1_without_silences.mp4: you can see silences has been removed.
+
+Known issues
+============
+
+On Ubuntu, the 'Preview silence' functionality does not seem to work properly.
