@@ -33,7 +33,7 @@ Installation:
 (The following will work for Window only, and maybe only for Window 10. If you have another operating system, please do the installation from sources.)
 
 * Install ffmpeg (this step is optional)
-* Download archive SilenceRemover-1.0.0.zip
+* Download archive SilenceRemover-v1.0.0.zip at https://github.com/astridcasadei/SilenceRemover/releases/tag/v1.0.0.
 * Unzip archive in a folder of your choice.
 * Go in this folder and launch SilenceRemover.exe. (This should launch the software.)
 
