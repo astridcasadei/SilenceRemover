@@ -1,13 +1,13 @@
 # This Python file uses the following encoding: utf-8
 
+import os
 from PySide2 import QtCore
 from PySide2 import QtWidgets
-import os
 from PySide2.QtWidgets import QAbstractItemView, QMessageBox, QSpinBox, QItemDelegate
 from PySide2.QtCore import QFile, Qt, Signal, QObject
 from PySide2.QtUiTools import QUiLoader
-from VideoTools import VideoTools
 from proglog import ProgressBarLogger
+from VideoTools import VideoTools
 
 COL_START_SILENCE = 0
 COL_STOP_SILENCE = 1
@@ -27,6 +27,14 @@ class SpecificParamWindow(QtWidgets.QWidget):
     # Called once, when window is created
     def __init__(self):
         super(SpecificParamWindow, self).__init__()
+
+        self.input_filename = ""
+        self.output_filename = ""
+        self.noise_threshold = 0.02
+        self.max_silence_duration = 300
+        self.start_offset = 150
+        self.stop_offset = 150
+        self.spinbox_delegate = SpinBoxDelegate()
 
         # Creation of objects
         self.error_dialog = QMessageBox()
@@ -82,7 +90,7 @@ class SpecificParamWindow(QtWidgets.QWidget):
                                                               self.stop_offset)
         # Fill silence table widget with silences found.
         self.fill_silence_table()
-        if (len(self.silence_list) > 0):
+        if len(self.silence_list) > 0:
             self.ui.silence_list_table_widget.selectRow(0)
         else:
             self.ui.silence_preview_push_button.setEnabled(False)
@@ -96,38 +104,37 @@ class SpecificParamWindow(QtWidgets.QWidget):
         for i in range(n_silence):
             # Add one line
             self.ui.silence_list_table_widget.insertRow(i)
-            e = self.silence_list[i]
+            sil = self.silence_list[i]
 
             # Fill line with silence data
-            item = QtWidgets.QTableWidgetItem("{:.3f}".format(e.start_time))
+            item = QtWidgets.QTableWidgetItem("{:.3f}".format(sil.start_time))
             self.ui.silence_list_table_widget.setItem(i, COL_START_SILENCE, item)
-            item = QtWidgets.QTableWidgetItem("{:.3f}".format(e.stop_time))
+            item = QtWidgets.QTableWidgetItem("{:.3f}".format(sil.stop_time))
             self.ui.silence_list_table_widget.setItem(i, COL_STOP_SILENCE, item)
-            item = QtWidgets.QTableWidgetItem("{:.3f}".format(e.duration()))
+            item = QtWidgets.QTableWidgetItem("{:.3f}".format(sil.duration()))
             self.ui.silence_list_table_widget.setItem(i, COL_DURATION, item)
 
             # Columns containing start and stop offsets are editable spinboxes
             item = QtWidgets.QTableWidgetItem()
-            item.setData(QtCore.Qt.EditRole, e.start_offset)
+            item.setData(QtCore.Qt.EditRole, sil.start_offset)
             self.ui.silence_list_table_widget.setItem(i, COL_START_OFFSET, item)
             item = QtWidgets.QTableWidgetItem()
-            item.setData(QtCore.Qt.EditRole, e.stop_offset)
+            item.setData(QtCore.Qt.EditRole, sil.stop_offset)
             self.ui.silence_list_table_widget.setItem(i, COL_STOP_OFFSET, item)
 
-            self.spinBoxDelegate = SpinBoxDelegate()
-            self.ui.silence_list_table_widget.setItemDelegateForColumn(COL_START_OFFSET, self.spinBoxDelegate)
-            self.ui.silence_list_table_widget.setItemDelegateForColumn(COL_STOP_OFFSET, self.spinBoxDelegate)
+            self.ui.silence_list_table_widget.setItemDelegateForColumn(COL_START_OFFSET, self.spinbox_delegate)
+            self.ui.silence_list_table_widget.setItemDelegateForColumn(COL_STOP_OFFSET, self.spinbox_delegate)
 
             # Set cells that are not allowed to be changed by user
             self.set_cell_changeable(i, COL_START_SILENCE, False)
             self.set_cell_changeable(i, COL_STOP_SILENCE, False)
             self.set_cell_changeable(i, COL_DURATION, False)
-            self.set_cell_changeable(i, COL_START_OFFSET, e.start_offset_changeable)
-            self.set_cell_changeable(i, COL_STOP_OFFSET, e.stop_offset_changeable)
+            self.set_cell_changeable(i, COL_START_OFFSET, sil.start_offset_changeable)
+            self.set_cell_changeable(i, COL_STOP_OFFSET, sil.stop_offset_changeable)
 
 
     def set_cell_changeable(self, row, col, changeable):
-        if (changeable):
+        if changeable:
             self.ui.silence_list_table_widget.item(row, col). setBackground(Qt.white)
         else:
             self.ui.silence_list_table_widget.item(row, col).setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
@@ -137,7 +144,7 @@ class SpecificParamWindow(QtWidgets.QWidget):
     def on_previous_push_button_clicked(self):
         # Empty silence table widget.
         old_len = self.ui.silence_list_table_widget.rowCount()
-        for i in range(old_len):
+        for _ in range(old_len):
             self.ui.silence_list_table_widget.removeRow(0)
 
         # Disconnect button for previewing silences
@@ -163,7 +170,7 @@ class SpecificParamWindow(QtWidgets.QWidget):
     # Called when user press 'Preview silence' button
     def on_silence_preview_push_button_clicked(self):
         indexes = self.ui.silence_list_table_widget.selectionModel().selectedRows()
-        assert (len(indexes) == 1)
+        assert len(indexes) == 1
         row = indexes[0].row()
         playtime_before = self.ui.playtime_before_spin_box.value()
         playtime_after = self.ui.playtime_after_spin_box.value()
@@ -174,19 +181,19 @@ class SpecificParamWindow(QtWidgets.QWidget):
 
     # Called when user change a cell in silence table widget
     def on_cell_changed(self, row, col):
-        assert ((row >= 0) and (row < len(self.silence_list))), 'Fatal error'
-        assert ((col == COL_START_OFFSET) or (col == COL_STOP_OFFSET)), 'Fatal error'
+        assert (0 <= row < len(self.silence_list)), 'Fatal error'
+        assert col in (COL_START_OFFSET, COL_STOP_OFFSET), 'Fatal error'
 
         # Get changed data
         data = self.ui.silence_list_table_widget.item(row, col).data(Qt.DisplayRole)
 
-        if (col == COL_START_OFFSET):
+        if col == COL_START_OFFSET:
             self.silence_list[row].start_offset = data
         else:
             self.silence_list[row].stop_offset = data
 
         # If invalid data entered by user, open a warning box.
-        if ((self.silence_list[row].start_offset + self.silence_list[row].stop_offset) * MS_TO_SEC > self.silence_list[row].duration()):
+        if (self.silence_list[row].start_offset + self.silence_list[row].stop_offset) * MS_TO_SEC > self.silence_list[row].duration():
             self.error_dialog.setIcon(QMessageBox.Warning)
             self.error_dialog.setText("You have set start_offset + stop_offset greater than silence duration. Therefore, this silence will not be cut.")
             self.error_dialog.show()
@@ -195,7 +202,7 @@ class SpecificParamWindow(QtWidgets.QWidget):
 # Allow to set limits for spinboxes for start and stop offsets of silences in the silence table widget.
 class SpinBoxDelegate(QItemDelegate):
 
-    def createEditor(self, parent, option, index):
+    def createEditor(self, parent, *_):
         editor = QSpinBox(parent)
         editor.setMinimum(0)
         editor.setMaximum(1000000)
@@ -217,20 +224,20 @@ class MyBarLogger(ProgressBarLogger, QObject):
     def __init__(self):
         ProgressBarLogger.__init__(self)
         QObject.__init__(self)
+        self.progress_factor = 0
 
     def callback(self, **changes):
         if 't' in self.state['bars']:
             idx = self.state['bars']['t']['index']
-            if (idx < 0):
+            if idx < 0:
                 self.progress_factor = self.mp4_progress_delta / self.state['bars']['t']['total']
             else:
                 val = self.mp4_progress_start + self.progress_factor * idx
                 self.video_generation_progress.emit(val)
         elif 'chunk' in self.state['bars']:
             idx = self.state['bars']['chunk']['index']
-            if (idx < 0):
+            if idx < 0:
                 self.progress_factor = self.mp3_progress_delta / self.state['bars']['chunk']['total']
             else:
                 val = self.mp3_progress_start + self.progress_factor * idx
                 self.video_generation_progress.emit(val)
-

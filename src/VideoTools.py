@@ -1,12 +1,13 @@
 # This Python file uses the following encoding: utf-8
-from SilenceData import SilenceData
-import numpy as np
-from moviepy.editor import VideoFileClip, concatenate_videoclips
-import pygame
-from moviepy.video.io.ffmpeg_reader import ffmpeg_parse_infos
-from PySide2.QtCore import Signal, QObject
+
 import os
 import re
+import numpy as np
+import pygame
+from moviepy.editor import VideoFileClip, concatenate_videoclips
+from moviepy.video.io.ffmpeg_reader import ffmpeg_parse_infos
+from PySide2.QtCore import Signal, QObject
+from SilenceData import SilenceData
 
 MS_TO_SEC = 0.001
 EPS = 1e-4
@@ -14,60 +15,61 @@ EPS = 1e-4
 
 class VideoTools(QObject):
 
-    silence_computation_progress = Signal(int)
+    silence_comput_progress = Signal(int)
     video_generation_progress = Signal(int)
 
-    def compute_silences(self, filename, noise_threshold, max_silence_duration, start_offset_def, stop_offset_def):
+    def compute_silences(self, filename, noise_threshold, max_silence_duration,
+                         start_offset_def, stop_offset_def):
         start_stop_list, video_duration = self.compute_silences_start_and_stop(filename,
                                                                                noise_threshold,
                                                                                max_silence_duration * MS_TO_SEC)
         silence_list = []
-        id = 0
+        iden = 0
         for (start, stop) in start_stop_list:
             start_offset = start_offset_def
             stop_offset = stop_offset_def
             start_offset_changeable = stop_offset_changeable = True
-            if (abs(start) < EPS):
+            if abs(start) < EPS:
                 start_offset = 0
                 start_offset_changeable = False
-            if (abs(stop - video_duration) < EPS):
+            if abs(stop - video_duration) < EPS:
                 stop_offset = 0
                 stop_offset_changeable = False
             silence = SilenceData(id, start, stop, start_offset, stop_offset,
                                   start_offset_changeable, stop_offset_changeable)
             silence_list.append(silence)
-            id += 1
+            iden += 1
         return silence_list
 
     def compute_silences_start_and_stop(self, filename, noise_threshold, max_silence_duration):
 
-        self.silence_computation_progress.emit(1)
+        self.silence_comput_progress.emit(1)
 
         # Open video clip
         videoclip = VideoFileClip(filename)
-        self.silence_computation_progress.emit(3)
+        self.silence_comput_progress.emit(3)
 
         # Compute volume array from video file
         audio_fps = videoclip.audio.fps
-        soundArray = videoclip.audio.subclip().to_soundarray(fps=audio_fps)
-        n = np.shape(soundArray)[0]  # We have n / customFps = duration_in_seconds
-        self.silence_computation_progress.emit(17)
+        sound_array = videoclip.audio.subclip().to_soundarray(fps=audio_fps)
+        n_sound = np.shape(sound_array)[0]  # We have n / customFps = duration_in_seconds
+        self.silence_comput_progress.emit(17)
 
-        volumeFn = lambda p : p[0]*p[0] + p[1]*p[1]
-        volumes = np.array(list(map(volumeFn, soundArray)))
-        self.silence_computation_progress.emit(85)
+        volume_fn = lambda p : p[0]*p[0] + p[1]*p[1]
+        volumes = np.array(list(map(volume_fn, sound_array)))
+        self.silence_comput_progress.emit(85)
 
         # Find silences
         start = 0  # Current silence begins at 'start' index and ends just before 'stop' index
         silence_list = []
         square_noise_threshold = noise_threshold**2
 
-        for i in range(n+1):
+        for i in range(n_sound+1):
 
-            if ((i == n) or (volumes[i] > square_noise_threshold)):
+            if ((i == n_sound) or (volumes[i] > square_noise_threshold)):
                 stop = i
-                silenceDuration = (stop - start) / audio_fps
-                if (silenceDuration > max_silence_duration):
+                silence_duration = (stop - start) / audio_fps
+                if silence_duration > max_silence_duration:
 
                     start_time = start / audio_fps
                     stop_time = stop / audio_fps
@@ -75,7 +77,7 @@ class VideoTools(QObject):
                 start = i + 1
 
         video_duration = videoclip.duration
-        self.silence_computation_progress.emit(100)
+        self.silence_comput_progress.emit(100)
         videoclip.close()
         return silence_list, video_duration
 
@@ -87,15 +89,15 @@ class VideoTools(QObject):
         start_cut = silence.start_cut()
         stop_cut = silence.stop_cut()
 
-        if (start_cut < stop_cut):
+        if start_cut < stop_cut:
             cliplist = []
 
-            if (start < start_cut):
+            if start < start_cut:
                 cliplist.append(videoclip.subclip(start, start_cut))
-            if (stop_cut < stop):
+            if stop_cut < stop:
                 cliplist.append(videoclip.subclip(stop_cut, stop))
 
-            assert(len(cliplist) > 0)
+            assert len(cliplist) > 0
             tmpclip = concatenate_videoclips(cliplist)
         else:
             tmpclip = videoclip.subclip(start, stop)
@@ -130,16 +132,16 @@ class VideoTools(QObject):
         for line in lines:
             line = line.strip()
             if line.startswith('Stream #0:0'):
-                s = re.search('(\d+ kb/s)', line)
-                if s is not None:
-                    output_video_bitrate = s.group(1)
+                search = re.search('(\d+ kb/s)', line)
+                if search is not None:
+                    output_video_bitrate = search.group(1)
                     output_video_bitrate = output_video_bitrate[:-3]
                 else:
                     print("Note: took default video bitrate")
             if line.startswith('Stream #0:1'):
-                s = re.search('(\d+ kb/s)', line)
-                if s is not None:
-                    output_audio_bitrate = s.group(1)
+                search = re.search('(\d+ kb/s)', line)
+                if search is not None:
+                    output_audio_bitrate = search.group(1)
                     output_audio_bitrate = output_audio_bitrate[:-3]
                 else:
                     print("Note: took default audio bitrate")
@@ -153,35 +155,35 @@ class VideoTools(QObject):
         # Remove pseudo-silences
         clean_silence_list = []
         for silence in silence_list:
-            if (silence.start_cut() < silence.stop_cut()):
+            if silence.start_cut() < silence.stop_cut():
                 clean_silence_list.append(silence)
 
-        m = len(clean_silence_list)
+        n_sil = len(clean_silence_list)
 
         # Subclip before the first silence (if exist)
         subclips = []
         start_time = 0
-        if (m > 0):
+        if n_sil > 0:
             stop_time = clean_silence_list[0].start_cut()
         else:
             stop_time = videoclip.duration
 
-        if (start_time < stop_time):
+        if start_time < stop_time:
             subclips.append(videoclip.subclip(start_time, stop_time))
 
         # Subclips between silences
-        for i in range(m-1):
+        for i in range(n_sil-1):
             start_time = clean_silence_list[i].stop_cut()
             stop_time = clean_silence_list[i+1].start_cut()
             subclips.append(videoclip.subclip(start_time, stop_time))
-            val = i / (m-1) * 11
+            val = i / (n_sil-1) * 11
             self.video_generation_progress.emit(val)
 
         # Subclip after last silence (if exist)
-        if (m > 0):
-            start_time = clean_silence_list[m-1].stop_cut()
+        if n_sil > 0:
+            start_time = clean_silence_list[n_sil-1].stop_cut()
             stop_time = videoclip.duration
-            if (start_time != stop_time):
+            if start_time != stop_time:
                 subclips.append(videoclip.subclip(start_time, stop_time))
 
         self.video_generation_progress.emit(11)
@@ -194,7 +196,9 @@ class VideoTools(QObject):
                                    audio_fps=output_audio_fps,
                                    bitrate=output_video_bitrate,
                                    audio_bitrate=output_audio_bitrate,
-                                   preset='ultrafast',  # 'placebo' = very slow but smaller file size, 'ultrafast' = a lot faster but silghtly higher file size (and same quality)
+                                   preset='ultrafast',  # 'placebo' = very slow but smaller file size,
+                                                        # 'ultrafast' = a lot faster but silghtly
+                                                        #        higher file size (and same quality)
                                    logger=progress_bar_logger)
 
         self.video_generation_progress.emit(99)

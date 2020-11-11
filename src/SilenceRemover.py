@@ -1,21 +1,22 @@
 # This Python file uses the following encoding: utf-8
 import sys
+from PySide2.QtWidgets import QApplication, QDesktopWidget
 from GenericParamWindow import GenericParamWindow
 from SpecificParamWindow import SpecificParamWindow
-from PySide2.QtWidgets import QApplication, QDesktopWidget
 
 SOFTWARE_NAME = "Silence Remover"
 
 
 # Flipping from second to first window
-def toFrame1():
+def to_frame1():
     frame2.hide()
     frame1.start()
     frame1.show()
 
 
 # Flipping from first to second window
-def toFrame2(input_filename, output_filename, noise_threshold, max_silence_duration, start_offset, stop_offset):
+def to_frame2(input_filename, output_filename, noise_threshold,
+             max_silence_duration, start_offset, stop_offset):
     frame2.start(input_filename,
                  output_filename,
                  noise_threshold,
@@ -40,16 +41,18 @@ if __name__ == "__main__":
     x_max = bottom_right.x()
     y_max = bottom_right.y()
     frame1_width = min(frame1.width() + 0, x_max)
-    frame1_height = min(frame1.height() + 200, y_max)  # workaround because "height()" seem to underestimate real height
+    frame1_height = min(frame1.height() + 200, y_max)  # workaround because "height()"
+                                                       # seem to underestimate real height
     frame1.move((x_max - frame1_width) / 2, (y_max - frame1_height) / 2)
     frame2_width = min(frame2.width() + 0, x_max)
-    frame2_height = min(frame2.height() + 400, y_max)  # workaround because "height()" seem to underestimate real height
+    frame2_height = min(frame2.height() + 400, y_max)  # workaround because "height()"
+                                                       # seem to underestimate real height
     frame2.move((x_max - frame2_width) / 2, (y_max - frame2_height) / 2)
 
     # Connexions of frames
-    frame1.nextWindow.connect(toFrame2)
-    frame2.previousWindow.connect(toFrame1)
-    frame2.video_tools.silence_computation_progress.connect(frame1.on_progress)
+    frame1.nextWindow.connect(to_frame2)
+    frame2.previousWindow.connect(to_frame1)
+    frame2.video_tools.silence_comput_progress.connect(frame1.on_progress)
 
     # Display first window
     frame1.start()

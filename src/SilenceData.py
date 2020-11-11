@@ -4,7 +4,7 @@ MS_TO_SEC = 0.001
 
 
 class SilenceData:
-    id = 0
+    identifier = 0
 
     # Silence start time [float, s]
     start_time = 0
@@ -24,9 +24,9 @@ class SilenceData:
     # Stop offset changeable [bool]
     stop_offset_changeable = True
 
-    def __init__(self, id, start_time, stop_time, start_offset, stop_offset,
+    def __init__(self, iden, start_time, stop_time, start_offset, stop_offset,
                  start_offset_changeable, stop_offset_changeable):
-        self.id = id
+        self.identifier = iden
         self.start_time = start_time
         self.stop_time = stop_time
         self.start_offset = start_offset
