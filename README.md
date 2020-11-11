@@ -85,6 +85,19 @@ Ubuntu
   
   
 
+Virtualenv 
+-----------
+
+```bash
+mkdir -p /path/to/dependencies
+virtualenv -p python3.8 /path/to/dependencies
+/path/to/dependencies/bin/pip install PySide2 moviepy matplotlib pygame
+mkdir -p ~/path/to/install && cd ~/path/to/install
+unzip -x Silence*.zip
+cd SilenceRemover-main
+/path/to/dependencies/bin/python src/SilenceRemover.py
+```
+
 Usage example
 ==============
 
