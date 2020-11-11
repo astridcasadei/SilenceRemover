@@ -19,4 +19,4 @@ jobs:
         pip install pylint PySide2==5.15.1 numpy==1.19.3 matplotlib==3.2.2 moviepy==1.0.3 proglog==0.1.9 pygame==2.0.0
     - name: Analysing the code with pylint
       run: |
-        pylint `ls -R|grep .py$|xargs`
+        pylint src/SilenceRemover.py
