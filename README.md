@@ -123,4 +123,6 @@ Usage example
 Known issues
 ============
 
-On Ubuntu, the 'Preview silence' functionality does not seem to work properly.
+* On Ubuntu, the 'Preview silence' functionality does not seem to work properly, and the preview window cannot be closed.
+* Output video can be read with VLC, but some other softwares seem unable to read the audio (I had this problem with Da Vinci Resolve).
+* Progress bar of the second window sometimes remains hidden when a generation is asked.
